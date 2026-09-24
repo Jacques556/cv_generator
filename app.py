@@ -3,6 +3,7 @@ import json
 import os
 import subprocess
 import sys
+import fitz  # PyMuPDF for reliable PDF-to-Image rendering
 import streamlit as st
 
 st.set_page_config(
@@ -66,11 +67,11 @@ with form_col:
         
         # Phone number with responsive country code dropdown & input field
         st.markdown("<p style='font-size: 14px; font-weight: 500; margin-bottom: 6px; margin-top: 10px;'>Phone Number</p>", unsafe_allow_html=True)
-        p_col1, p_col2 = st.columns([1.5, 2.5])
+        p_col1, p_col2 = st.columns([1.8, 2.2])
         with p_col1:
             phone_code = st.selectbox(
                 "Country Code",
-                ["+1 (US/CA)", "+63 (PH)", "+44 (UK)", "+61 (AU)", "+91 (IN)", "+49 (DE)", "+81 (JP)", "+971 (AE)"],
+                ["+1 US/CA", "+63 PH", "+44 UK", "+61 AU", "+91 IN", "+49 DE", "+81 JP", "+971 AE"],
                 label_visibility="collapsed"
             )
         with p_col2:
@@ -213,12 +214,14 @@ with preview_col:
                 mime="application/pdf",
             )
 
-        base64_pdf = base64.b64encode(PDFbyte).decode("utf-8")
-        pdf_display = f"""
-            <div style="background-color: #ffffff; padding: 10px; border-radius: 8px; border: 1px solid #E2E8F0; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);">
-                <iframe src="data:application/pdf;base64,{base64_pdf}#toolbar=0&view=FitH" width="100%" height="820px" type="application/pdf" style="border: none; background: white;"></iframe>
-            </div>
-        """
-        st.markdown(pdf_display, unsafe_allow_html=True)
+        # Convert PDF pages to PNG images for robust rendering
+        try:
+            doc = fitz.open("cv.pdf")
+            for page in doc:
+                pix = page.get_pixmap(dpi=150)
+                img_bytes = pix.tobytes("png")
+                st.image(img_bytes, use_container_width=True)
+        except Exception as e:
+            st.error(f"Error rendering PDF preview: {e}")
     else:
         st.info("Generating preview...")
